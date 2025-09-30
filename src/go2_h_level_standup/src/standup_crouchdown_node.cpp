@@ -11,7 +11,7 @@ int main(int argc, char **argv)
 {
   rclcpp::init(argc, argv);
 
-  int test_mode = go2_h_level_standup::NORMAL_STAND;
+  int test_mode = go2_h_level_standup::MOVE;
   
   // if (argc > 1) {
   //   test_mode = std::atoi(argv[1]);  // NOLINT

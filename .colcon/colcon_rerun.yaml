@@ -1,0 +1,6 @@
+'full_captures':
+  'build':
+  - 'build'
+  - '--packages-select'
+  - 'go2_pos_move'
+'last_verb': 'build'
