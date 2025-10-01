@@ -15,18 +15,21 @@ Go2SportClientNode::Go2SportClientNode()
     });
     
   posMoveSub_ = this->create_subscription<geometry_msgs::msg::Pose2D>(
-    "go2_pos_move",                                            // 自定义话题
-    10,                                                        // 队列深度（可按需调整）
+    "go2_pos_move",                                            
+    10,                                                        
     [this](const geometry_msgs::msg::Pose2D::SharedPtr pose) {
       go2PosMoveHandler(pose);
     });
 
-    t1_ = std::thread([this]
-  {
-    // Wait for ROS 2 spin to start before issuing commands.
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-    RobotTestControl(MOVE);
-  });
+  tfBuffer_   = std::make_unique<tf2_ros::Buffer>(this->get_clock());
+  tfListener_ = std::make_shared<tf2_ros::TransformListener>(*tfBuffer_);
+
+  //   t1_ = std::thread([this]
+  // {
+  //   // Wait for ROS 2 spin to start before issuing commands.
+  //   std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  //   RobotTestControl(MOVE);
+  // });
 }
 
 Go2SportClientNode::~Go2SportClientNode(){
@@ -112,10 +115,68 @@ void Go2SportClientNode::go2PosMoveHandler(
               "Received target pose: x=%.3f, y=%.3f, theta=%.3f",
               pose->x, pose->y, pose->theta);
 
-  sport_client_.Move(req_, pose->x, pose->y, pose->theta);
+  // 1) Read current pose from TF
+  double curX = 0.0, curY = 0.0, curYaw = 0.0;
+  if (!getCurrentPoseFromTf(curX, curY, curYaw)) {
+    // If TF not ready, we can decide to skip or just pass through the target as-is.
+    RCLCPP_WARN(this->get_logger(),
+                "TF pose is unavailable. Please ensure TF tree is online.");
+    // sport_client_.Move(req_, pose->x, pose->y, pose->theta);
+    return;
+  }
+
+  // 2) Compute deltas in the same frame of Pose2D (assumed odom frame)
+  const double dx     = pose->x - curX;
+  const double dy     = pose->y - curY;
+  const double dtheta = normalizeAngle(pose->theta - curYaw);
+
   RCLCPP_INFO(this->get_logger(),
-              "Robot is moving!");
+              "Target(odom): x=%.3f, y=%.3f, yaw=%.3f | Current: x=%.3f, y=%.3f, yaw=%.3f | Delta: dx=%.3f, dy=%.3f, dθ=%.3f",
+              pose->x, pose->y, pose->theta, curX, curY, curYaw, dx, dy, dtheta);
+
+  // 3) Send incremental command to robot
+  // NOTE: If SportClient::Move expects velocities (vx, vy, yaw_rate),
+  //       you may need a controller to convert (dx,dy,dθ) into velocity setpoints over time.
+  //       Here we follow your original usage and pass the deltas directly.
+  sport_client_.Move(req_, static_cast<float>(dx),
+                          static_cast<float>(dy),
+                          static_cast<float>(dtheta));
+
+  RCLCPP_INFO(this->get_logger(), "Sent incremental Move: (%.3f, %.3f, %.3f).",
+              dx, dy, dtheta);
   
+}
+
+bool Go2SportClientNode::getCurrentPoseFromTf(double &x, double &y, double &yaw)
+{
+  // We assume the target Pose2D is expressed in the "odom" frame,
+  // and robot base is "base_link". Change names here if your frames differ.
+  static const std::string parent = "odom";
+  static const std::string child  = "base_link";
+
+  try {
+    // Use the latest available transform
+    geometry_msgs::msg::TransformStamped tfMsg =
+        tfBuffer_->lookupTransform(parent, child, tf2::TimePointZero);
+
+    x = tfMsg.transform.translation.x;
+    y = tfMsg.transform.translation.y;
+
+    // Extract yaw from quaternion
+    yaw = tf2::getYaw(tfMsg.transform.rotation);
+    return true;
+  } catch (const tf2::TransformException &ex) {
+    RCLCPP_WARN(this->get_logger(), "TF lookup failed: %s", ex.what());
+    return false;
+  }
+}
+
+double Go2SportClientNode::normalizeAngle(double a)
+{
+  // Wrap to [-pi, pi]
+  while (a > M_PI)  a -= 2.0 * M_PI;
+  while (a < -M_PI) a += 2.0 * M_PI;
+  return a;
 }
 
 }  // namespace go2_pos_move

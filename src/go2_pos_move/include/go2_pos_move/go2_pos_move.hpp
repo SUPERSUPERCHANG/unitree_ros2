@@ -7,6 +7,12 @@
 #include <unitree_api/msg/response.hpp>
 #include <unitree_go/msg/sport_mode_state.hpp>
 #include <geometry_msgs/msg/pose2_d.hpp>
+#include <tf2_ros/transform_listener.h>
+#include <tf2_ros/buffer.h>
+#include <geometry_msgs/msg/pose2_d.hpp>  
+#include <tf2/utils.h>                             
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>  
+
 
 #include "ros2_sport_client.h"
 
@@ -40,6 +46,9 @@ public:
   void GetInitState();
   void HighStateHandler(const unitree_go::msg::SportModeState::SharedPtr msg);
   void go2PosMoveHandler(const geometry_msgs::msg::Pose2D::SharedPtr pose);
+  bool getCurrentPoseFromTf(double &x, double &y, double &yaw);
+  double normalizeAngle(double a);
+
 private:
   unitree_go::msg::SportModeState state_{};
   SportClient sport_client_;
@@ -48,6 +57,11 @@ private:
   rclcpp::Subscription<geometry_msgs::msg::Pose2D>::SharedPtr posMoveSub_;
   rclcpp::TimerBase::SharedPtr timer_;
   unitree_api::msg::Request req_{};
+
+  // TF buffer & listener
+  std::unique_ptr<tf2_ros::Buffer> tfBuffer_;
+  std::shared_ptr<tf2_ros::TransformListener> tfListener_;
+  
   double px0_{};
   double py0_{};
   double yaw0_{};

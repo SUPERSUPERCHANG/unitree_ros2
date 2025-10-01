@@ -11,13 +11,16 @@ find_package(rclcpp REQUIRED)
 find_package(unitree_api REQUIRED)
 find_package(unitree_go REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
 
 include_directories( include include/go2_pos_move include/nlohmann include/common)
 add_library( ros2_sport_client SHARED src/ros2_sport_client.cpp)
 ament_target_dependencies( ros2_sport_client rclcpp unitree_api unitree_go)
 
 add_library( go2_pos_move SHARED src/go2_pos_move.cpp)
-ament_target_dependencies( go2_pos_move rclcpp unitree_api unitree_go geometry_msgs)
+ament_target_dependencies( go2_pos_move rclcpp unitree_api unitree_go geometry_msgs tf2_ros tf2 tf2_geometry_msgs)
 target_link_libraries( go2_pos_move ros2_sport_client)
 
 
