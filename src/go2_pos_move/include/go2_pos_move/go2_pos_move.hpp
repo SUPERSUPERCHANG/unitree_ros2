@@ -2,11 +2,11 @@
 #define GO2_POS_MOVE_HPP
 
 #include <thread>
-
 #include <rclcpp/rclcpp.hpp>
 #include <unitree_api/msg/request.hpp>
 #include <unitree_api/msg/response.hpp>
 #include <unitree_go/msg/sport_mode_state.hpp>
+#include <geometry_msgs/msg/pose2_d.hpp>
 
 #include "ros2_sport_client.h"
 
@@ -39,12 +39,13 @@ public:
   void RobotTestControl(TestMode test_mode);
   void GetInitState();
   void HighStateHandler(const unitree_go::msg::SportModeState::SharedPtr msg);
-
+  void go2PosMoveHandler(const geometry_msgs::msg::Pose2D::SharedPtr pose);
 private:
   unitree_go::msg::SportModeState state_{};
   SportClient sport_client_;
   rclcpp::Subscription<unitree_go::msg::SportModeState>::SharedPtr suber_;
   rclcpp::Subscription<unitree_api::msg::Response>::SharedPtr req_suber_;
+  rclcpp::Subscription<geometry_msgs::msg::Pose2D>::SharedPtr posMoveSub_;
   rclcpp::TimerBase::SharedPtr timer_;
   unitree_api::msg::Request req_{};
   double px0_{};
@@ -52,7 +53,7 @@ private:
   double yaw0_{};
   // double ct_{};s
   int flag_{};
-  int isPrintHighState_{1};
+  int isPrintHighState_{0};
   // float dt_ = 0.1F;
   std::thread t1_;
 };

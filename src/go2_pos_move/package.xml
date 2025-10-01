@@ -15,7 +15,7 @@
   <depend>rclcpp</depend>
   <depend>unitree_api</depend>
   <depend>unitree_go</depend>
-
+  <depend>geometry_msgs</depend>
   <export>
     <build_type>ament_cmake</build_type>
   </export>

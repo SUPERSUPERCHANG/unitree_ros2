@@ -14,6 +14,13 @@ Go2SportClientNode::Go2SportClientNode()
       HighStateHandler(data);
     });
     
+  posMoveSub_ = this->create_subscription<geometry_msgs::msg::Pose2D>(
+    "go2_pos_move",                                            // 自定义话题
+    10,                                                        // 队列深度（可按需调整）
+    [this](const geometry_msgs::msg::Pose2D::SharedPtr pose) {
+      go2PosMoveHandler(pose);
+    });
+
     t1_ = std::thread([this]
   {
     // Wait for ROS 2 spin to start before issuing commands.
@@ -96,6 +103,19 @@ void Go2SportClientNode::HighStateHandler(
     "IMU rpy: %f, %f, %f", state_.imu_state.rpy[0], state_.imu_state.rpy[1], state_.imu_state.rpy[2]);
   }
 
+}
+
+void Go2SportClientNode::go2PosMoveHandler(
+    const geometry_msgs::msg::Pose2D::SharedPtr pose)
+{
+  RCLCPP_INFO(this->get_logger(),
+              "Received target pose: x=%.3f, y=%.3f, theta=%.3f",
+              pose->x, pose->y, pose->theta);
+
+  sport_client_.Move(req_, pose->x, pose->y, pose->theta);
+  RCLCPP_INFO(this->get_logger(),
+              "Robot is moving!");
+  
 }
 
 }  // namespace go2_pos_move
