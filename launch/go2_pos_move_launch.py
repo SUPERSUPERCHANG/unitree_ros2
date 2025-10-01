@@ -4,9 +4,10 @@ from ament_index_python.packages import get_package_share_directory
 import os
 
 def generate_launch_description():
-    rviz_config_path = os.path.join("config",
-        "config.rviz"
-    )
+
+    launchDir = os.path.dirname(os.path.realpath(__file__))
+    rootDir = os.path.dirname(launchDir)
+    rviz_config_path = os.path.join(rootDir, "config", "config.rviz")
 
     return LaunchDescription([
         
@@ -31,6 +32,6 @@ def generate_launch_description():
             executable="rviz2",
             name="rviz2",
             output="screen",
-            #arguments=["-d", rviz_config_path]
+            arguments=["-d", rviz_config_path]
         ),
     ])
